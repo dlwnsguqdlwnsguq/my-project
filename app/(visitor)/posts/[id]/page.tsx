@@ -7,89 +7,78 @@ import { TOC } from '@/components/features/post/toc'
 import { CommentSection } from './comment-section'
 import { formatDate } from '@/lib/utils/date'
 import { extractTOC } from '@/lib/utils/markdown'
-import type { Post, Tag, Comment } from '@/types/model'
-
-// Mock data - will be replaced with Supabase queries
-const MOCK_POST: Post = {
-  id: '1',
-  title: 'Next.js 15에서 달라진 것들',
-  slug: null,
-  content: `## 소개
-
-Next.js 15이 출시되었습니다. 이번 버전에서는 많은 변화가 있었는데요, 주요 변경사항들을 하나씩 살펴보겠습니다.
-
-## 주요 변경사항
-
-### 1. Turbopack 안정화
-
-드디어 Turbopack이 안정화되었습니다. 개발 서버 시작 속도가 크게 향상되었습니다.
-
-\`\`\`bash
-npm run dev --turbo
-\`\`\`
-
-### 2. 향상된 캐싱
-
-캐싱 메커니즘이 개선되어 더 효율적인 데이터 관리가 가능해졌습니다.
-
-\`\`\`typescript
-// 새로운 캐싱 패턴
-import { unstable_cache } from 'next/cache'
-
-const getCachedData = unstable_cache(
-  async () => {
-    return await fetchData()
-  },
-  ['my-cache-key'],
-  { revalidate: 3600 }
-)
-\`\`\`
-
-## 마무리
-
-Next.js 15는 성능과 개발자 경험 모두를 크게 향상시켰습니다. 새 프로젝트를 시작한다면 적극 도입을 권장합니다.
-
-> 더 자세한 내용은 [공식 문서](https://nextjs.org/docs)를 참고하세요.
-`,
-  thumbnailUrl: null,
-  description: 'Next.js 15 버전의 주요 변경사항과 새로운 기능들을 살펴봅니다.',
-  isPublished: true,
-  isFeatured: true,
-  viewCount: 1234,
-  createdAt: new Date('2024-01-15'),
-  updatedAt: new Date('2024-01-15'),
-  tags: [{ id: '2', name: 'Next.js' }, { id: '3', name: 'TypeScript' }],
-}
-
-const MOCK_COMMENTS: Comment[] = [
-  {
-    id: '1',
-    postId: '1',
-    parentId: null,
-    nickname: '방문자1',
-    content: '좋은 글 감사합니다! Next.js 15 업그레이드 고려 중이었는데 도움이 많이 됐어요.',
-    isAdmin: false,
-    createdAt: new Date('2024-01-16'),
-  },
-  {
-    id: '2',
-    postId: '1',
-    parentId: null,
-    nickname: 'Admin',
-    content: '감사합니다! 궁금한 점 있으시면 댓글 남겨주세요.',
-    isAdmin: true,
-    createdAt: new Date('2024-01-16'),
-  },
-]
+import { createClient } from '@/lib/supabase/server'
+import type { Post, Comment } from '@/types/model'
 
 interface PostDetailPageProps {
   params: Promise<{ id: string }>
 }
 
+async function getPost(id: string): Promise<Post | null> {
+  const supabase = await createClient()
+  
+  const { data: post, error } = await supabase
+    .from('posts')
+    .select(`
+      *,
+      posts_tags (
+        tags (*)
+      )
+    `)
+    .eq('id', id)
+    .single()
+
+  if (error || !post) {
+    console.error('Error fetching post:', error)
+    return null
+  }
+
+  // Map to frontend model
+  return {
+    id: (post as any).id,
+    title: (post as any).title,
+    slug: (post as any).slug,
+    content: (post as any).content,
+    thumbnailUrl: (post as any).thumbnail_url,
+    description: (post as any).description,
+    isPublished: (post as any).is_published,
+    isFeatured: (post as any).is_featured,
+    viewCount: (post as any).view_count,
+    createdAt: new Date((post as any).created_at),
+    updatedAt: new Date((post as any).updated_at),
+    tags: (post as any).posts_tags.map((pt: any) => pt.tags).filter(Boolean),
+  }
+}
+
+async function getComments(postId: string): Promise<Comment[]> {
+  const supabase = await createClient()
+  
+  const { data, error } = await supabase
+    .from('comments')
+    .select('*')
+    .eq('post_id', postId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching comments:', error)
+    return []
+  }
+
+  return (data || []).map((comment: any) => ({
+    id: comment.id,
+    postId: comment.post_id,
+    parentId: comment.parent_id,
+    nickname: comment.nickname,
+    content: comment.content,
+    isAdmin: comment.is_admin,
+    createdAt: new Date(comment.created_at),
+  }))
+}
+
 export async function generateMetadata({ params }: PostDetailPageProps) {
   const { id } = await params
-  // In real app, fetch post from Supabase
-  const post = MOCK_POST
+  const post = await getPost(id)
 
   if (!post) {
     return { title: '글을 찾을 수 없습니다' }
@@ -109,13 +98,19 @@ export async function generateMetadata({ params }: PostDetailPageProps) {
 export default async function PostDetailPage({ params }: PostDetailPageProps) {
   const { id } = await params
   
-  // In real app, fetch from Supabase
-  const post = MOCK_POST
-  const comments = MOCK_COMMENTS
+  // Parallel fetching
+  const [post, comments] = await Promise.all([
+    getPost(id),
+    getComments(id),
+  ])
 
   if (!post) {
     notFound()
   }
+
+  // Increment view count (This is a side effect, might be better in a separate action or client-side effect, 
+  // but for simple blog logic, trigger it here or rely on database triggers/edge functions if available.
+  // We'll skip explicit increment for now to keep it pure server component read, or implement later)
 
   const tocItems = extractTOC(post.content || '')
 
