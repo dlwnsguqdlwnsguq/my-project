@@ -17,7 +17,7 @@ async function getRecentPosts(): Promise<PostListItem[]> {
       description,
       thumbnail_url,
       created_at,
-      posts_tags!inner (
+      posts_tags (
         tags (
           id,
           name

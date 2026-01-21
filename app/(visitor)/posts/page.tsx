@@ -32,7 +32,7 @@ async function getPosts(tag?: string): Promise<PostListItem[]> {
       description,
       thumbnail_url,
       created_at,
-      posts_tags!inner (
+      posts_tags (
         tags (
           id,
           name
@@ -44,9 +44,6 @@ async function getPosts(tag?: string): Promise<PostListItem[]> {
 
   if (tag) {
     // Filter by tag name through the joined relation
-    // Note: The !inner on posts_tags above forces an inner join, 
-    // effectively filtering posts that don't have the tag if we filter on tags.name
-    // But Supabase syntax for deep filtering can be tricky.
     // simpler approach: Filter on the joined table
     query = query.eq('posts_tags.tags.name', tag)
   }
