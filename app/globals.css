@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+@theme {
+  /* Colors - Deep Space */
+  --color-space-black: #050505;
+  --color-deep-navy: #0A0E1A;
+  --color-void: #000000;
+
+  /* Colors - Accents */
+  --color-primary-blue: #00F0FF;
+  --color-neon-blue: #00F0FF;
+  --color-primary-purple: #7000FF;
+  --color-accent-pink: #FF0080;
+  --color-star-white: #FFFFFF;
+  --color-stardust-gray: #8892B0;
+
+  /* Fonts */
+  --font-sans: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+  --font-mono: "Fira Code", "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Animations */
+  --animate-float: float 3s ease-in-out infinite;
+  --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-glow: glow 2s ease-in-out infinite alternate;
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  @keyframes glow {
+    from { box-shadow: 0 0 20px rgba(0, 240, 255, 0.2); }
+    to { box-shadow: 0 0 30px rgba(0, 240, 255, 0.4); }
+  }
+}
+
+/* Base Styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-space-black);
+  color: var(--color-star-white);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Selection */
+::selection {
+  background-color: rgba(0, 240, 255, 0.3);
+  color: white;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-deep-navy);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(136, 146, 176, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(136, 146, 176, 0.5);
+}
+
+/* Focus visible */
+:focus-visible {
+  outline: 2px solid var(--color-primary-blue);
+  outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
